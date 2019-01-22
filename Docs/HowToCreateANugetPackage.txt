@@ -1,0 +1,68 @@
+Guide on how to make a project into a nuget package.
+.NETCore
+Step 1, Create a .net core project and it's already done.
+Finish. Yes, in .NetCore it is that easy to make the nuget package. It is then a case of uploading the *.nupkg that gets build in the bin directory and uploading that to the nuget repo. 
+
+.NETFramework.
+PreReq - I downlaoded and installed this nuget.exe. Type this into google and just download it from there. 
+AnotherTestLibrary.csproj
+
+Unfortunately it isn't that easy there are some modifications you will want to do to the project before it is built.
+1. Add the package metadata to the project file - this is the descriptive tags that will be used to display information later. Just right click on project -> Properties and enter the information you want to be displayed. 
+2. open a CMD window and navigate to the .csproj folder location.
+
+3. Run nuget.exe spec $project_name$.csproj - Note: You may have to pass in the filepath to the nuget.exe.
+
+4. You should get a successful message like "Created '$project_name$.nuspec' successfully.
+
+5. You may want to include the nuspec file in your solution. To do this, you can just add an existing file.
+
+6. You will want to modify the manifest data so that it displays the information correctly when available within nuget.
+
+7. Once configured, run the nuget pack command. In the same CMD windows as used previously, you want to enter "nuget.exe pack" - Note: May have to pass in the nuget file location.
+- When I ran this for the first time, it failed because it had the following message 
+		Authors is required.
+		Description is required.
+- To resolve this, you need to go to the nuspec file and enter the details there. 
+
+8. If the pack command executed successfully, you will get a message "Successfully created packed '$project_name$1.0.0.nupkg.
+ 
+9. You will want to then publish the nuget package to your desired location. 
+
+10. In the same CMD window, type nuget.exe push $project_name$.1.0.0.nupkg -Source $nuget_location$
+
+11. Smarter deployment?
+
+There are a couple of things that you can do to imporve this process. 
+1. Add nuget to environment variables. So I've downloaded Nuget.exe in C:\Nuget. You will want to go to system settings where you can modify the system variables. You will want to add C:\Nuget to the Path system variable. Note you will have to close and re-open CMD and Visual Studio.  
+
+2. Create a new build configuration called deploy
+
+3. Modify the post build steps so that when the deploy is ran, it automatically uploads the package to nuget.
+
+if $(ConfigurationName) == Deploy (
+
+if not exist C:\Nuget\$(ProjectName) mkdir C:\Nuget\$(ProjectName)
+
+nuget pack $(ProjectPath)
+
+nuget push  $(TargetDir)$(ProjectName).@(VersionNumber).nupkg -Source C:\Nuget\$(ProjectName)
+
+)
+
+4. Modify the csproj file so that you can gain access to the VersionNumber in the post build.
+- Within the Post build property group you will want to add the following
+	<PostBuildEventDependsOn>
+      $(PostBuildEventDependsOn);
+      PostBuildMacros;
+    </PostBuildEventDependsOn>
+- The just before that property group, you want to add this target.
+	<Target Name="PostBuildMacros">
+		<GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+			<Output TaskParameter="Assemblies" ItemName="Targets" />
+		</GetAssemblyIdentity>
+		<ItemGroup>
+			<VersionNumber Include="@(Targets->'%(Version)')" />
+		</ItemGroup>
+	</Target>
+
